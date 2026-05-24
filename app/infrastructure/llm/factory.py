@@ -8,14 +8,11 @@ from app.utils.logger import logger
 
 def get_llm_client() -> LLMClient:
     """Factory function that returns the configured LLM client."""
-    
     provider = config.LLM_PROVIDER.lower()
-    
+
     if provider == "ollama":
         logger.info("Using Ollama LLM client")
         return OllamaClient()
-    
-    
-    else:
-        logger.warning(f"Unknown LLM provider '{provider}', falling back to Ollama")
-        return OllamaClient()
+
+    logger.warning(f"Unknown LLM provider '{provider}', falling back to Ollama")
+    return OllamaClient()

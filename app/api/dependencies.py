@@ -4,11 +4,9 @@ from app.core.generate_mcqs import GenerateMCQs
 from app.core.submit_answers import SubmitAnswers
 from app.infrastructure.db.sqlite_repository import SQLiteKBRepository
 from app.infrastructure.pdf.pymupdf_parser import PyMuPDFParser
-from app.infrastructure.llm.factory import get_llm_client
+from app.infrastructure.llm.factory import get_llm_client as build_llm_client
 from app.utils.config import config
 
-
-# Singleton instances
 _kb_repository = None
 _pdf_parser = None
 _llm_client = None
@@ -37,7 +35,7 @@ def get_llm_client():
     """Get or create LLM client instance."""
     global _llm_client
     if _llm_client is None:
-        _llm_client = get_llm_client()
+        _llm_client = build_llm_client()
     return _llm_client
 
 
@@ -48,7 +46,7 @@ def get_generate_mcqs_use_case():
         _generate_mcqs_use_case = GenerateMCQs(
             llm_client=get_llm_client(),
             kb_repository=get_kb_repository(),
-            pdf_parser=get_pdf_parser()
+            pdf_parser=get_pdf_parser(),
         )
     return _generate_mcqs_use_case
 
@@ -57,7 +55,5 @@ def get_submit_answers_use_case():
     """Get or create SubmitAnswers use case."""
     global _submit_answers_use_case
     if _submit_answers_use_case is None:
-        _submit_answers_use_case = SubmitAnswers(
-            kb_repository=get_kb_repository()
-        )
+        _submit_answers_use_case = SubmitAnswers(kb_repository=get_kb_repository())
     return _submit_answers_use_case

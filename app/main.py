@@ -7,14 +7,12 @@ from app.api.routes import prep, kb
 from app.utils.logger import logger
 from app.utils.config import config
 
-# Create FastAPI app
 app = FastAPI(
     title="Adaptive MCQ Preparation System",
     description="Generate adaptive MCQs from SLATEFALL dossier",
-    version="1.0.0"
+    version="1.0.0",
 )
 
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,7 +21,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
 app.include_router(prep.router)
 app.include_router(kb.router)
 
@@ -50,7 +47,7 @@ async def root():
     return {
         "message": "Adaptive MCQ Preparation System",
         "docs": "/docs",
-        "status": "running"
+        "status": "running",
     }
 
 
