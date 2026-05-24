@@ -9,11 +9,9 @@ from app.api.schemas import (
     QuestionSchema,
     SubmitRequest,
     SubmitResponse,
-    AnswerResultSchema,
 )
-from app.api.dependencies import get_generate_mcqs_use_case, get_submit_answers_use_case
+from app.api.dependencies import get_generate_mcqs_use_case
 from app.core.generate_mcqs import GenerateMCQs
-from app.core.submit_answers import SubmitAnswers
 from app.utils.logger import logger
 from app.utils.exceptions import SectionNotFoundError, LLMError
 
@@ -28,14 +26,11 @@ async def generate_questions(
     """Generate MCQs for specified sections."""
     try:
         session_id = str(uuid4())
-
-        # Generate questions
         questions_by_section = await use_case.execute(
             section_ids=request.sections,
             num_questions_per_section=request.num_questions_per_section,
         )
 
-        # Flatten questions and attach to response
         all_questions = []
         for section_id, questions in questions_by_section.items():
             for q in questions:
@@ -65,16 +60,12 @@ async def generate_questions(
 @router.post("/submit", response_model=SubmitResponse)
 async def submit_answers(
     request: SubmitRequest,
-    use_case: SubmitAnswers = Depends(get_submit_answers_use_case),
 ):
     """Submit answers and get scoring with clarifications."""
-    try:
-        # TODO: Implement full submit logic. Currently returns empty response.
-        # For now, this is a placeholder. The actual submission is handled
-        # via run_scenario_b.py which uses execute_with_questions() directly.
-
-        return SubmitResponse(session_id=request.session_id, score=0.0, results=[])
-
-    except Exception as e:
-        logger.error(f"Error submitting answers: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "The /prep/submit API is not wired for standalone scoring yet. "
+            "Use the in-process SubmitAnswers use case with the generated questions."
+        ),
+    )

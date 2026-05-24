@@ -6,12 +6,14 @@ from pydantic import BaseModel
 
 class GenerateRequest(BaseModel):
     """Request body for /prep/generate."""
+
     sections: List[int]
     num_questions_per_section: int = 5
 
 
 class QuestionSchema(BaseModel):
     """Question response schema."""
+
     id: str
     text: str
     choices: List[str]
@@ -20,6 +22,7 @@ class QuestionSchema(BaseModel):
 
 class GenerateResponse(BaseModel):
     """Response body for /prep/generate."""
+
     session_id: str
     sections: List[int]
     questions: List[QuestionSchema]
@@ -27,13 +30,15 @@ class GenerateResponse(BaseModel):
 
 class SubmitRequest(BaseModel):
     """Request body for /prep/submit."""
+
     session_id: str
     sections: List[int]
-    answers: Dict[str, str]  # question_id -> user_answer (A/B/C/D)
+    answers: Dict[str, str]
 
 
 class AnswerResultSchema(BaseModel):
     """Single answer result."""
+
     question_id: str
     question_text: str
     user_answer: str
@@ -44,6 +49,7 @@ class AnswerResultSchema(BaseModel):
 
 class SubmitResponse(BaseModel):
     """Response body for /prep/submit."""
+
     session_id: str
     score: float
     results: List[AnswerResultSchema]
@@ -51,11 +57,13 @@ class SubmitResponse(BaseModel):
 
 class KBSnapshotRequest(BaseModel):
     """Request body for /kb/snapshot."""
+
     sections: List[int]
 
 
 class WeakTopicSchema(BaseModel):
     """Weak topic response."""
+
     section_id: int
     topic: str
     wrong_count: int
@@ -63,6 +71,7 @@ class WeakTopicSchema(BaseModel):
 
 class KBSnapshotResponse(BaseModel):
     """Response body for /kb/snapshot."""
+
     sections: List[int]
     weak_topics: List[WeakTopicSchema]
     total_sessions: int

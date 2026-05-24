@@ -49,7 +49,7 @@ class OllamaClient(BaseLLMClient):
                         "stream": False,
                         "options": {
                             "temperature": 0.3,
-                            "num_predict": 4000,  # was 2000
+                            "num_predict": 4000,
                         },
                     },
                 )
@@ -67,7 +67,6 @@ class OllamaClient(BaseLLMClient):
 
                 logger.info(f"Generated response length: {len(generated_text)} chars")
 
-                # Parse the response into Question objects
                 questions = self._parse_llm_response(generated_text, section_id)
 
                 if len(questions) < num_questions:

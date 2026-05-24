@@ -1,119 +1,126 @@
-# Adaptive MCQ Preparation System – SLATEFALL Dossier
+# Adaptive MCQ Preparation System
 
-A backend system that generates adaptive multiple-choice questions from the **SLATEFALL PAMC dossier**, tracks user performance, and dynamically adjusts future questions based on historical weak areas.
-## Tech Stack
+Adaptive MCQ Preparation System turns the SLATEFALL dossier into adaptive multiple-choice practice. It extracts section text, generates questions locally, scores attempts, and increases the weight of weak topics over time.
 
-- **Backend:** FastAPI  
-- **LLM:** Ollama with Llama 3.2 (1B) – fully local, no API key  
-- **PDF Parsing:** PyMuPDF  
-- **Database:** SQLite  
-- **Language:** Python 3.10+  
+## Why these tools
 
-## Prerequisites
+- FastAPI: compact async API with typed request and response models.
+- Ollama: local model execution with no external API key.
+- PyMuPDF: stable PDF text extraction for section-based generation.
+- SQLite: simple persistence for sessions, attempts, and topic tracking.
 
-- Python 3.10 or higher  
-- Ollama installed – https://ollama.com/download
+## What It Does
 
-## Installation
+- Generates MCQs for selected dossier sections.
+- Stores completed sessions and question attempts in SQLite.
+- Tracks wrong answers by topic and promotes weak topics after repeated misses.
+- Avoids mastered topics when generating later question sets.
 
-### 1. Clone the repository
-```bash
-git clone https://github.com/Shafee-Ahmed/adaptive-prep-system.git
-cd adaptive-prep-system
+## Project Layout
+
+```text
+app/
+	main.py                 FastAPI entry point
+	api/                    Routes, schemas, and dependency wiring
+	core/                   Use cases and domain entities
+	infrastructure/         SQLite, PDF, and LLM implementations
+	utils/                  Configuration, logging, and exceptions
+scripts/                  Scenario runners and answer simulation
+data/                     Database file and SLATEFALL PDF
+docker/                   Dockerfile and compose config
+outputs/                  Saved scenario results
 ```
 
-### 2. Create virtual environment
-```bash
-python -m venv venv
-source venv/bin/activate # On Windows: venv\Scripts\activate
-```
-### 3. Install dependencies
+## Setup
+
+### Local
+
+1. Create and activate a virtual environment.
+2. Install dependencies.
+
 ```bash
 pip install -r requirements.txt
 ```
-### 4. Pull the LLM model
+
+3. Start Ollama and pull the model.
+
 ```bash
+ollama serve
 ollama pull llama3.2:1b
 ```
-### 5. Set up environment variables
-```bash
-cp .env.example .env
-```
-### 6. Add the PDF dossier
-Copy SLATEFALL_DOSSIER.pdf to the data/ folder 
 
-## Run The Project test the scenario for B
+4. Copy `SLATEFALL_DOSSIER.pdf` into `data/`.
+5. Copy `.env.example` to `.env` if you want to override defaults.
+
+### Docker
+
+```bash
+docker compose -f docker/docker-compose.yml up --build -d
+```
+
+The compose file starts the app and a local Ollama service.
+
+## Run the API
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Useful endpoints:
+
+- `POST /prep/generate` generates MCQs for the requested sections.
+- `POST /prep/submit` submits answers and returns scoring with clarifications.
+- `POST /kb/snapshot` returns weak-topic and session-history data.
+- `GET /health` checks service status.
+
+## Scenario Scripts
+
+- `scripts/run_scenario_a.py` runs a cold-start scenario over two sections (sections 1 and 2) and saves outputs under `outputs/scenario_a/`.
+- `scripts/run_scenario_b.py` runs three adaptive iterations and saves outputs under `outputs/scenario_b_iter*/`.
+- `scripts/simulate_answers.py` generates answer patterns for testing adaptation.
+
+Example:
+
 ```bash
 python scripts/run_scenario_b.py
 ```
-## Installation through Docker
-#### Start the containers
-```bash 
-docker-compose -f docker/docker-compose.yml up -d
-```
-#### (One-time) pull model inside ollama container
-```bash 
-docker exec -it $(docker ps -q -f name=ollama) ollama pull llama3.2:1b
-```
-#### Run Scenario B inside app container
-```bash 
-docker exec -it $(docker ps -q -f name=app) python scripts/run_scenario_b.py
-```
 
+## Data Model
 
-### 1. Outputs are saved in:
-`outputs/scenario_b_iter1/questions_iter1.json
-`
-`
- outputs/scenario_b_iter1/kb_snapshot_iter1.json
-`
-`
- outputs/scenario_b_iter2/questions_iter2.json
-`
-`
- outputs/scenario_b_iter2/kb_snapshot_iter2.json
-`
-`
-outputs/scenario_b_iter3/questions_iter3.json
-`
-`
-outputs/scenario_b_iter3/kb_snapshot_iter3.json
-`
+SQLite stores three tables:
 
+- `sessions`: session metadata, chosen sections, and final score.
+- `question_attempts`: one row per answered question linked back to a session.
+- `topic_performance`: wrong-answer counts for each `(section_id, topic)` pair.
 
-## API Endpoints
+The weak-topic threshold is `wrong_count >= 2`.
 
-### Method Endpoint Description
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /prep/generate | Generate MCQs for given sections |
-| POST | /prep/submit | Submit answers and get scoring |
-| POST | /kb/snapshot | Get knowledge base snapshot |
+## Outputs
 
-## How Adaptation Works
-#### 1. User answers questions in a session
-#### 2. Wrong answers are tracked by topic
-#### 3. Topics with 2+ wrong answers become &quot;weak topics&quot;
-#### 4. Next session focuses on weak topics
-#### 5. Mastered topics are avoided
-## Project Structure
-```
-adaptive-prep-system/
-├── app/
-│ ├── api/ # REST endpoints
-│ ├── core/ # logic
-│ ├── infrastructure/ # DB, PDF, LLM
-│ └── utils/ # Config, logging
-├── scripts/ # CLI evaluation
-├── data/ # PDF and database
-└── outputs/ # Generated JSON files
-```
-## Notes :
- #### No paid APIs required – runs with local Ollama
- #### First run downloads model (~1.5GB)
- #### Outputs saved in required folder structure
- #### To reset knowledge base: delete data/kb.db
+Generated artifacts are written to:
+
+- `outputs/scenario_b_iter1/`
+- `outputs/scenario_b_iter2/`
+- `outputs/scenario_b_iter3/`
+
+Each iteration stores a questions JSON file and a knowledge-base snapshot JSON file.
+
+## Configuration
+
+- `LLM_PROVIDER` defaults to `ollama`.
+- `OLLAMA_HOST` defaults to `http://localhost:11434`.
+- `DATABASE_PATH` defaults to `data/kb.db`.
+- `PDF_PATH` defaults to `data/SLATEFALL_DOSSIER.pdf`.
+- `LOG_LEVEL` defaults to `INFO`.
+
+## Notes
+
+- No paid API is required.
+- The first model pull can take time because the weights are downloaded locally.
+- Delete `data/kb.db` if you want to reset the knowledge base.
+
 ## Troubleshooting
- #### Ollama connection error: Run ``` ollama serve ```
- #### Model not found: Run ```ollama pull llama3.2:1b```
- #### PDF not found: Copy dossier to data/ folder
+
+- If Ollama is not reachable, make sure `ollama serve` is running.
+- If the model is missing, run `ollama pull llama3.2:1b`.
+- If the PDF is missing, place `SLATEFALL_DOSSIER.pdf` in `data/`.

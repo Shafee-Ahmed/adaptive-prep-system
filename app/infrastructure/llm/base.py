@@ -18,7 +18,6 @@ class BaseLLMClient(LLMClient):
         """Parse LLM response into Question objects."""
         questions = []
 
-        # Split by Q1:, Q2:, etc.
         q_pattern = r"Q(\d+)[:\.]\s*(.+?)(?=Q\d+[:\.]|$)"
         matches = list(re.finditer(q_pattern, response_text, re.DOTALL))
 
@@ -26,7 +25,6 @@ class BaseLLMClient(LLMClient):
             q_num = match.group(1)
             q_block = match.group(2)
 
-            # Find choices - look for A), B), C), D) patterns
             choices = {}
             for letter in ["A", "B", "C", "D"]:
                 choice_pattern = rf"{letter}[\)\.]\s*(.+?)(?=[A-D][\)\.]|Correct:|$)"
@@ -40,7 +38,6 @@ class BaseLLMClient(LLMClient):
                 )
                 continue
 
-            # Extract correct answer
             correct_pattern = r"Correct:\s*([A-D])"
             correct_match = re.search(correct_pattern, q_block, re.IGNORECASE)
             if not correct_match:
@@ -49,20 +46,16 @@ class BaseLLMClient(LLMClient):
 
             correct_answer = correct_match.group(1).upper()
 
-            # Extract explanation
             explanation_pattern = r"Explanation:\s*(.+?)(?=Q\d+[:\.]|$)"
             explanation_match = re.search(explanation_pattern, q_block, re.DOTALL)
             explanation = (
                 explanation_match.group(1).strip() if explanation_match else ""
             )
 
-            # Question text (everything before A))
             q_text = q_block.split("A)")[0].strip()
 
-            # Create choices list in order A, B, C, D
             choices_list = [choices["A"], choices["B"], choices["C"], choices["D"]]
 
-            # Extract topic
             topic = q_text[:50].split("?")[0][:30] if "?" in q_text else None
 
             questions.append(
@@ -94,23 +87,20 @@ class BaseLLMClient(LLMClient):
         prompt = f"""
         You are an expert examiner testing knowledge of the SLATEFALL dossier.
 
-        SECTION {section_id} CONTENT:
+        SECTION {section_id}:
         {section_text[:3000]}
 
-        INSTRUCTIONS:
-        Generate exactly {num_questions} multiple choice questions with 4 choices each (A, B, C, D).
+        Generate exactly {num_questions} multiple-choice questions with 4 options each.
 
-        CRITICAL RULES:
-        - You MUST generate EXACTLY {num_questions} questions. No more, no less.
-        - Each question MUST have EXACTLY 4 choices: A), B), C), D)
-        - NO "E)" or "None of the above" or "All of the above"
-        - Questions must be based ONLY on the section above
+        Constraints:
+        - Use only the section content above.
+        - Use only A), B), C), and D).
+        - Do not include E), "All of the above", or "None of the above".
 
-        ADAPTATION:
-        - WEAK TOPICS (user struggles with): {weak_topics_str}
-        - MASTERED TOPICS (user knows): {mastered_str}
+        Emphasize weak topics: {weak_topics_str}
+        Avoid mastered topics: {mastered_str}
 
-        OUTPUT FORMAT (follow exactly, no extra text, no explanations between questions):
+        Output format:
 
         Q1: [question text]
         A) [choice]
@@ -120,24 +110,6 @@ class BaseLLMClient(LLMClient):
         Correct: A
         Explanation: [brief explanation]
 
-        Q2: [question text]
-        A) [choice]
-        B) [choice]
-        C) [choice]
-        D) [choice]
-        Correct: B
-        Explanation: [brief explanation]
-
-        Q3: [question text]
-        A) [choice]
-        B) [choice]
-        C) [choice]
-        D) [choice]
-        Correct: C
-        Explanation: [brief explanation]
-
-        Do not add any text before Q1 or after Q3's explanation.
-        Do not add choices beyond D.
+        Do not add any text before Q1 or after the final explanation.
         """
         return prompt
-
