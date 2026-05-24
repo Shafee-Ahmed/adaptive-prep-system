@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    command: serve
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - DATABASE_PATH=/app/data/kb.db
+      - PDF_PATH=/app/data/SLATEFALL_DOSSIER.pdf
+      - LOG_LEVEL=INFO
+    volumes:
+      - ../data:/app/data
+      - ../outputs:/app/outputs
+
+volumes:
+  ollama_data:
